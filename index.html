@@ -29153,7 +29153,7 @@ function buildIcsForWeek() {
     const eventDate = new Date(baseDate);
     eventDate.setDate(baseDate.getDate() + (day - 1));
     const yyyymmdd = dateToLocalIso(eventDate).replace(/-/g, '');
-    const title = r.title || r.name;
+    const title = '🍽️ ' + (r.title || r.name);
     const descParts = [];
     if (r.source) descParts.push('Bron: ' + r.source);
     if (r.portie) descParts.push(r.portie);
@@ -29178,7 +29178,7 @@ function buildIcsForWeek() {
     events.push(makeEvent(
       `toko-${mondayYmd}@recepten-naar-ah`,
       mondayYmd + 'T060000', mondayYmd + 'T063000',
-      'Bij de toko halen', tokoDesc
+      '🥢 Bij de toko halen', tokoDesc
     ));
   }
 
@@ -29192,7 +29192,7 @@ function buildIcsForWeek() {
     events.push(makeEvent(
       `markt-${tuesdayYmd}@recepten-naar-ah`,
       tuesdayYmd + 'T070000', tuesdayYmd + 'T073000',
-      'Bij de markt halen', marktDesc
+      '🥬 Bij de markt halen', marktDesc
     ));
   }
 
