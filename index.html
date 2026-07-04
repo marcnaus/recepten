@@ -28976,20 +28976,16 @@ const TEXT_TO_ID = (function() {
 const STORAGE_KEY = 'recepten-naar-ah-v3';
 const CLOUD_WORKER = 'https://ah-proxy.marc-naus.workers.dev';
 const CLOUD_SECRET_KEY = 'recepten-cloud-secret';
-
 function getCloudSecret() { try { return localStorage.getItem(CLOUD_SECRET_KEY) || ''; } catch(e) { return ''; } }
 function setCloudSecret(s) { try { localStorage.setItem(CLOUD_SECRET_KEY, s); } catch(e) {} }
-
 let _cloudSyncTimer = null;
-
 function setCloudStatus(s) {
-  const el = document.getElementById('cloud-sync-indicator');
-  if (!el) return;
+  const ind = document.getElementById('cloud-sync-indicator');
+  if (!ind) return;
   const map = { idle: '', syncing: '🔄', ok: '☁️', error: '⚠️' };
-  el.textContent = map[s] || '';
-  el.title = { ok: 'Cloud sync OK', error: 'Cloud sync mislukt', syncing: 'Bezig...', idle: '' }[s] || '';
+  ind.textContent = map[s] || '';
+  ind.title = { ok: 'Cloud sync OK', error: 'Cloud sync mislukt', syncing: 'Bezig...', idle: '' }[s] || '';
 }
-
 async function pushToCloud(stateJson) {
   const secret = getCloudSecret();
   if (!secret) return;
@@ -29000,10 +28996,8 @@ async function pushToCloud(stateJson) {
     });
     const data = await resp.json();
     setCloudStatus(data.ok ? 'ok' : 'error');
-    if (!data.ok) console.warn('[cloud] save error:', data);
-  } catch(e) { console.warn('[cloud] push failed:', e); setCloudStatus('error'); }
+  } catch(e) { setCloudStatus('error'); }
 }
-
 async function loadFromCloud() {
   const secret = getCloudSecret();
   if (!secret) return null;
@@ -29014,9 +29008,8 @@ async function loadFromCloud() {
     if (!resp.ok) return null;
     const data = await resp.json();
     return (data.empty || data.error) ? null : data;
-  } catch(e) { console.warn('[cloud] load failed:', e); return null; }
+  } catch(e) { return null; }
 }
-
 async function initCloudSync() {
   const secret = getCloudSecret();
   if (!secret) return;
@@ -29025,19 +29018,15 @@ async function initCloudSync() {
   const remoteAt = remote._savedAt ? new Date(remote._savedAt).getTime() : 0;
   const localAt  = state._savedAt  ? new Date(state._savedAt).getTime()  : 0;
   const cloudHasData = !!(remote.userRecipes || remote.selected || remote.ingredients);
-  // Vraag altijd bij nieuw apparaat (geen lokale timestamp) of als cloud duidelijk nieuwer is
   if (remoteAt > localAt + 5000 || (localAt === 0 && cloudHasData)) {
     const remoteDate = remote._savedAt ? new Date(remote._savedAt).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' }) : 'onbekend';
     const localDate  = state._savedAt  ? new Date(state._savedAt).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' }) : 'geen lokale data';
-    const use = confirm(`☁️ Cloud heeft nieuwere data!\n\nCloud: ${remoteDate}\nDit apparaat: ${localDate}\n\nCloud-versie laden?`);
-    if (use) {
+    if (confirm(`☁️ Cloud heeft nieuwere data!\n\nCloud: ${remoteDate}\nDit apparaat: ${localDate}\n\nCloud-versie laden?`)) {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(remote)); location.reload(); }
       catch(e) { alert('Laden mislukt: ' + e.message); }
     }
   }
-  // Nooit automatisch pushen bij opstarten — alleen via saveState debounce
 }
-
 const state = loadState();
 
 function loadState() {
@@ -29885,16 +29874,12 @@ function saveState() {
   try {
     const data = JSON.stringify(state);
     localStorage.setItem(STORAGE_KEY, data);
-    // Debounced cloud push: 3 seconden na laatste wijziging
     if (_cloudSyncTimer) clearTimeout(_cloudSyncTimer);
     _cloudSyncTimer = setTimeout(() => pushToCloud(data), 3000);
   } catch (e) {
     const msg = '⚠️ Opslaan mislukt! Je wijzigingen zijn NIET bewaard.\n\nMogelijke oorzaak: opslag vol.\nMaak een backup via het Backup-menu.';
     console.error('saveState failed:', e);
-    if (!saveState._warned) {
-      saveState._warned = true;
-      setTimeout(() => alert(msg), 100);
-    }
+    if (!saveState._warned) { saveState._warned = true; setTimeout(() => alert(msg), 100); }
   }
 }
 
@@ -31517,26 +31502,18 @@ function showBackupDialog() {
   dialog.appendChild(el('div', { class: 'dialog-sep', text: 'Cloud sync (alle apparaten):' }));
   const cloudBox = el('div', { style: 'background:#f0f9ff;border-radius:8px;padding:12px;margin-bottom:8px;' });
   cloudBox.innerHTML = `
-    <div style="font-size:13px;color:#0c4a6e;margin-bottom:8px;">
-      Geef je geheime woordje in (zelfde op alle apparaten).
-    </div>
+    <div style="font-size:13px;color:#0c4a6e;margin-bottom:8px;">Geef je geheime woordje in (zelfde op alle apparaten).</div>
     <div style="display:flex;gap:8px;align-items:center;">
       <input id="cloud-secret-input" type="password" placeholder="Geheim woordje" value="${getCloudSecret()}"
         style="flex:1;padding:8px;border:1px solid #bae6fd;border-radius:6px;font-size:14px;" />
       <button id="cloud-secret-save" type="button"
-        style="padding:8px 14px;background:#0284c7;color:white;border:none;border-radius:6px;font-size:13px;cursor:pointer;">
-        Instellen
-      </button>
+        style="padding:8px 14px;background:#0284c7;color:white;border:none;border-radius:6px;font-size:13px;cursor:pointer;">Instellen</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;">
       <button id="cloud-load-btn" type="button"
-        style="flex:1;padding:8px;background:#0284c7;color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer;">
-        ☁️ Laad uit cloud
-      </button>
+        style="flex:1;padding:8px;background:#0284c7;color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer;">☁️ Laad uit cloud</button>
       <button id="cloud-push-btn" type="button"
-        style="flex:1;padding:8px;background:#059669;color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer;">
-        ⬆️ Push naar cloud
-      </button>
+        style="flex:1;padding:8px;background:#059669;color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer;">⬆️ Push naar cloud</button>
     </div>
     <div id="cloud-secret-status" style="font-size:12px;margin-top:6px;color:#0c4a6e;min-height:18px;"></div>
   `;
@@ -31548,18 +31525,14 @@ function showBackupDialog() {
     const loadBtn = document.getElementById('cloud-load-btn');
     const pushBtn = document.getElementById('cloud-push-btn');
     if (!inp || !saveBtn || !sta) return;
-
-    // Instellen — alleen verbinding testen, nooit automatisch pushen
     saveBtn.onclick = async () => {
       const val = inp.value.trim();
       setCloudSecret(val);
       if (!val) { sta.textContent = 'Cloud sync uitgeschakeld.'; return; }
       sta.textContent = '🔄 Verbinding testen...';
       const remote = await loadFromCloud();
-      sta.textContent = remote ? '☁️ Verbonden! Cloud heeft data.' : '⚠️ Verbonden, maar geen data in cloud. Gebruik ⬆️ Push om je data te uploaden.';
+      sta.textContent = remote ? '☁️ Verbonden! Cloud heeft data.' : '⚠️ Verbonden, maar geen data. Gebruik ⬆️ Push om te uploaden.';
     };
-
-    // Laad uit cloud — altijd met bevestiging
     if (loadBtn) loadBtn.onclick = async () => {
       if (!getCloudSecret()) { alert('Stel eerst een geheim woordje in.'); return; }
       sta.textContent = '🔄 Ophalen...';
@@ -31567,17 +31540,10 @@ function showBackupDialog() {
       if (!remote) { sta.textContent = '⚠️ Geen data gevonden in cloud.'; return; }
       const remoteDate = remote._savedAt ? new Date(remote._savedAt).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' }) : 'onbekend';
       const localDate  = state._savedAt  ? new Date(state._savedAt).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' }) : 'geen lokale data';
-      if (!confirm(`☁️ Cloud laden?\n\nCloud: ${remoteDate}\nDit apparaat: ${localDate}\n\nLokale data wordt overschreven!`)) {
-        sta.textContent = 'Geannuleerd.'; return;
-      }
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
-        sta.textContent = '✅ Geladen! Pagina wordt herladen...';
-        setTimeout(() => location.reload(), 800);
-      } catch(e) { sta.textContent = '⚠️ Laden mislukt: ' + e.message; }
+      if (!confirm(`☁️ Cloud laden?\n\nCloud: ${remoteDate}\nDit apparaat: ${localDate}\n\nLokale data wordt overschreven!`)) { sta.textContent = 'Geannuleerd.'; return; }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(remote)); sta.textContent = '✅ Geladen! Pagina wordt herladen...'; setTimeout(() => location.reload(), 800); }
+      catch(e) { sta.textContent = '⚠️ Laden mislukt: ' + e.message; }
     };
-
-    // Push naar cloud — expliciet, met bevestiging
     if (pushBtn) pushBtn.onclick = async () => {
       if (!getCloudSecret()) { alert('Stel eerst een geheim woordje in.'); return; }
       const localDate = state._savedAt ? new Date(state._savedAt).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' }) : 'nu';
@@ -31587,7 +31553,6 @@ function showBackupDialog() {
       sta.textContent = document.getElementById('cloud-sync-indicator')?.textContent === '☁️' ? '☁️ Geüpload!' : '⚠️ Upload mislukt.';
     };
   }, 50);
-
   dialog.appendChild(el('div', { class: 'dialog-sep', text: 'of laad een backup-bestand:' }));
 
   const fileInput = el('input', { type: 'file', accept: '.json,application/json', class: 'backup-file-input' });
@@ -32444,6 +32409,17 @@ function aggregateWeek() {
   return { core, voorraad, toko, markt, extras };
 }
 
+function updateNaarAhBtn() {
+  const btn = document.getElementById('naar-ah-btn');
+  if (!btn) return;
+  const { core, voorraad, extras } = aggregateWeek();
+  const buyVoorraad = voorraad.filter(i => getBuyThisWeek(i.ingredientId || i.text));
+  const buyExtras   = extras.filter(i => getBuyThisWeek(i.ingredientId || i.text));
+  const count = core.length + buyVoorraad.length + buyExtras.length;
+  btn.textContent = `→ Naar AH-mandje (${count} items)`;
+  btn.className = 'send-ah-btn' + (count === 0 ? ' disabled' : '');
+}
+
 function renderDezeWeek() {
   $('#header-content').innerHTML = '';
   $('#header-content').appendChild(el('h1', { text: 'Weekboodschappen' }));
@@ -32638,7 +32614,7 @@ function renderDezeWeek() {
         cb.checked = getBuyThisWeek(item.ingredientId || item.text);
         cb.onchange = () => {
           setBuyThisWeek(item.ingredientId || item.text, cb.checked);
-          saveState();
+          saveState(); updateNaarAhBtn();
         };
         const lbl = el('label');
         lbl.appendChild(cb);
@@ -32663,7 +32639,7 @@ function renderDezeWeek() {
         cb.checked = getBuyThisWeek(item.ingredientId || item.text);
         cb.onchange = () => {
           setBuyThisWeek(item.ingredientId || item.text, cb.checked);
-          saveState();
+          saveState(); updateNaarAhBtn();
         };
         const lbl = el('label');
         lbl.appendChild(cb);
@@ -32816,7 +32792,8 @@ function renderDezeWeek() {
   const buyVoorraad = voorraad.filter(i => getBuyThisWeek(i.ingredientId || i.text));
   const items = [...core, ...buyVoorraad, ...buyExtras];
 
-  main.appendChild(el('button', {
+  const naarAhBtn = el('button', {
+    id: 'naar-ah-btn',
     class: 'send-ah-btn' + (items.length === 0 ? ' disabled' : ''),
     text: `→ Naar AH-mandje (${items.length} items)`,
     onclick: () => {
@@ -32825,7 +32802,8 @@ function renderDezeWeek() {
       saveState();
       render();
     },
-  }));
+  });
+  main.appendChild(naarAhBtn);
 
 
   main.appendChild(el('button', {
