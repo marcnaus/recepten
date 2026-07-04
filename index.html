@@ -32590,7 +32590,7 @@ function renderDezeWeek() {
       cb.checked = getBuyThisWeek(item.ingredientId || item.text);
       cb.onchange = () => {
         setBuyThisWeek(item.ingredientId || item.text, cb.checked);
-        saveState();
+        saveState(); updateNaarAhBtn();
       };
       const lbl = el('label');
       lbl.appendChild(cb);
@@ -32702,7 +32702,7 @@ function renderDezeWeek() {
       cb.checked = getBuyThisWeek(item.ingredientId || item.text);
       cb.onchange = () => {
         setBuyThisWeek(item.ingredientId || item.text, cb.checked);
-        saveState();
+        saveState(); updateNaarAhBtn();
       };
       const lbl = el('label', { class: 'extras-label' });
       lbl.appendChild(cb);
