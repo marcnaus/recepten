@@ -32058,6 +32058,38 @@ function renderDetail() {
     onclick: () => { state.activeView = 'detail-edit'; saveState(); render(); },
   }));
 
+  // Vertaal knop — alleen tonen als recept waarschijnlijk Engels is
+  if (isLikelyEnglish(recipe)) {
+    const translateBtn = el('button', {
+      class: 'edit-recipe-btn',
+      text: '🌐 Vertaal naar Nederlands',
+      style: 'background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;',
+    });
+    translateBtn.onclick = async () => {
+      translateBtn.disabled = true;
+      translateBtn.textContent = '🔄 Vertalen…';
+      const translated = await autoTranslateRecipe(recipe, null);
+      if (translated === recipe) {
+        translateBtn.textContent = '⚠️ Vertaling mislukt';
+        setTimeout(() => { translateBtn.disabled = false; translateBtn.textContent = '🌐 Vertaal naar Nederlands'; }, 2000);
+        return;
+      }
+      // Sla op als bewerking bovenop het origineel
+      const editKey = orig.recipeId || orig.name;
+      if (!state.recipeEdits) state.recipeEdits = {};
+      const existing = state.recipeEdits[editKey] || {};
+      state.recipeEdits[editKey] = {
+        ...existing,
+        name: translated.name,
+        ingredients: translated.ingredients,
+        _translatedAt: new Date().toISOString(),
+      };
+      saveState();
+      render();
+    };
+    detail.appendChild(translateBtn);
+  }
+
   detail.appendChild(el('div', { class: 'section-title', text: `Ingrediënten (${recipe.ingredients.length})` }));
   const ingList = el('ul', { class: 'ing-list' });
   recipe.ingredients.forEach(ing => {
