@@ -31194,6 +31194,49 @@ function classifyImportedIngredient(text) {
   return 'core';
 }
 
+
+// ── Auto-translate Engels recept naar Nederlands ──────────────────────────────
+
+function isLikelyEnglish(recipe) {
+  const hints = ['cup','cups','tablespoon','tbsp','teaspoon','tsp','clove','cloves',
+    'ground','chopped','diced','sliced','minced','peeled','grated','shredded',
+    'fresh','dried','large','small','medium','pound','ounce','oz','lb',
+    'inch','pinch','handful','bunch','can','jar','package','stick'];
+  const allText = [recipe.name, ...recipe.ingredients.map(i => i.text)].join(' ').toLowerCase();
+  const matches = hints.filter(w => new RegExp('\\b' + w + '\\b').test(allText));
+  return matches.length >= 2;
+}
+
+async function autoTranslateRecipe(parsed, statusEl) {
+  if (!isLikelyEnglish(parsed)) return parsed;
+  if (statusEl) { statusEl.textContent = '🔄 Engels recept — vertalen naar Nederlands…'; statusEl.className = 'import-status loading'; }
+  const texts = [parsed.name, ...parsed.ingredients.map(i => i.text)];
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 15000);
+    const resp = await fetch(
+      `${CLOUD_WORKER}?action=translate&texts=${encodeURIComponent(JSON.stringify(texts))}`,
+      { signal: ctrl.signal }
+    );
+    const data = await resp.json();
+    if (!data.translations || data.translations.length !== texts.length) return parsed;
+    const result = {
+      ...parsed,
+      name: data.translations[0] || parsed.name,
+      _originalName: parsed.name,
+      ingredients: parsed.ingredients.map((ing, i) => ({
+        ...ing,
+        text: data.translations[i + 1] || ing.text,
+      })),
+    };
+    if (statusEl) { statusEl.textContent = '✓ Vertaald naar Nederlands'; statusEl.className = 'import-status'; }
+    return result;
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '';
+    return parsed; // fail silently
+  }
+}
+
 function showImportDialog() {
   const overlay = el('div', { class: 'dialog-overlay' });
   const dialog = el('div', { class: 'dialog import-dialog' });
@@ -31238,7 +31281,10 @@ function showImportDialog() {
         if (!parsed.ingredients || parsed.ingredients.length === 0) {
           throw new Error('Recept gevonden maar geen ingrediënten.');
         }
-        // Reclassify ingredients
+        // Auto-translate als recept Engels is
+        status.textContent = 'Taal detecteren…';
+        parsed = await autoTranslateRecipe(parsed, status);
+        // Reclassify ingredients (nu in NL, betere match)
         parsed.ingredients = parsed.ingredients.map(i => ({ ...i, type: classifyImportedIngredient(i.text) }));
         // Avoid duplicate name
         const existing = getAllRecipes().find(r => r.name === parsed.name);
